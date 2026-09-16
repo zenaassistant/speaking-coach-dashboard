@@ -5,8 +5,12 @@ import type { SessionType } from '../../../lib/rubric';
 
 export async function GET(req: NextRequest) {
   const sessionType = req.nextUrl.searchParams.get('sessionType') as SessionType | null;
-  const sessions = await listSessions(sessionType ? { sessionType } : undefined);
-  return NextResponse.json({ sessions });
+  try {
+    const sessions = await listSessions(sessionType ? { sessionType } : undefined);
+    return NextResponse.json({ sessions });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || 'Failed to load sessions' }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {
