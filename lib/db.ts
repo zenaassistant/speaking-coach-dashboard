@@ -15,7 +15,16 @@ function pool(): Pool {
     throw new Error('POSTGRES_URL is not set — add the Postgres storage integration in the Vercel dashboard (Storage tab) and connect it to this project.');
   }
   if (!global.__scDbPool) {
-    global.__scDbPool = new Pool({ connectionString: process.env.POSTGRES_URL });
+    global.__scDbPool = new Pool({
+      connectionString: process.env.POSTGRES_URL,
+      // node-postgres does NOT reliably parse `sslmode=require` out of the
+      // connection string on its own — Neon/Vercel Postgres requires TLS, so
+      // this needs to be explicit or every query fails with a connection
+      // error. rejectUnauthorized:false matches what Vercel's own docs use
+      // for this exact integration (Neon's cert chain isn't in Node's
+      // default trust store in every runtime).
+      ssl: { rejectUnauthorized: false },
+    });
   }
   return global.__scDbPool;
 }
