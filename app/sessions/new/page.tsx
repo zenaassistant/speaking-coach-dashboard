@@ -11,13 +11,44 @@ export default function NewSessionPage() {
   const [transcript, setTranscript] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [extracting, setExtracting] = useState(false);
 
-  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => setTranscript(String(reader.result || ''));
-    reader.readAsText(file);
+    const name = file.name.toLowerCase();
+
+    // .txt/.md are read directly in the browser — no round trip needed.
+    if (name.endsWith('.txt') || name.endsWith('.md')) {
+      const reader = new FileReader();
+      reader.onload = () => setTranscript(String(reader.result || ''));
+      reader.readAsText(file);
+      return;
+    }
+
+    // .pdf/.docx need real parsing libraries that only run server-side.
+    if (name.endsWith('.pdf') || name.endsWith('.docx')) {
+      setExtracting(true);
+      setError('');
+      try {
+        const form = new FormData();
+        form.append('file', file);
+        const res = await fetch('/api/extract-text', { method: 'POST', body: form });
+        const body = await res.json();
+        if (!res.ok) {
+          setError(body.error || 'Could not extract text from that file.');
+        } else {
+          setTranscript(body.text || '');
+        }
+      } catch {
+        setError('Could not extract text from that file — try again.');
+      } finally {
+        setExtracting(false);
+      }
+      return;
+    }
+
+    setError(`Unsupported file type: ${file.name}. Use .txt, .md, .pdf, or .docx.`);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -84,13 +115,15 @@ export default function NewSessionPage() {
           />
         </label>
         <div style={{ marginBottom: 20 }}>
-          <input type="file" accept=".txt,.md" onChange={handleFile} style={{ fontSize: 13 }} />
-          <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--text-muted)' }}>or paste directly above</span>
+          <input type="file" accept=".txt,.md,.pdf,.docx" onChange={handleFile} disabled={extracting} style={{ fontSize: 13 }} />
+          <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--text-muted)' }}>
+            {extracting ? 'Extracting text…' : '.txt, .md, .pdf, .docx — or paste directly above'}
+          </span>
         </div>
         {error && <p style={{ color: 'var(--critical)', fontSize: 13, marginBottom: 16 }}>{error}</p>}
         <button
           type="submit"
-          disabled={busy || !transcript.trim()}
+          disabled={busy || extracting || !transcript.trim()}
           style={{
             padding: '10px 20px', borderRadius: 8, border: 'none',
             background: 'var(--series-1)', color: '#fff', fontSize: 14, fontWeight: 600,
