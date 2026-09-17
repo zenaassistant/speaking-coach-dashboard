@@ -39,7 +39,11 @@ coachingNotes: 150-350 words of direct, specific coaching — what to keep doing
 export async function scoreTranscript(transcript: string, sessionType: SessionType): Promise<{ scores: SessionScores; coachingNotes: string }> {
   const msg = await client.messages.create({
     model: MODEL,
-    max_tokens: 4096,
+    // 15 dimensions × a detailed, quote-grounded note each + 150-350 words of
+    // coaching notes can genuinely exceed 4096 tokens for a long/dense real
+    // session (confirmed live — same failure mode already fixed once for
+    // clinical-agent's Interventional Plans at this same 8192 ceiling).
+    max_tokens: 8192,
     system: buildSystemPrompt(sessionType),
     messages: [{ role: 'user', content: `TRANSCRIPT:\n${transcript.slice(0, 100000)}` }],
   });
