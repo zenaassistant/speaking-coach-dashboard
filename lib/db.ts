@@ -111,6 +111,18 @@ export async function deleteSession(id: number): Promise<boolean> {
   return (res.rowCount ?? 0) > 0;
 }
 
+export async function updateSession(id: number, fields: { label?: string; patientHandle?: string }): Promise<Session | null> {
+  await ensureSchema();
+  const sets: string[] = [];
+  const values: any[] = [];
+  if (fields.label !== undefined) { values.push(fields.label); sets.push(`label = $${values.length}`); }
+  if (fields.patientHandle !== undefined) { values.push(fields.patientHandle); sets.push(`patient_handle = $${values.length}`); }
+  if (sets.length === 0) return getSession(id);
+  values.push(id);
+  const res = await pool().query(`UPDATE sessions SET ${sets.join(', ')} WHERE id = $${values.length} RETURNING *`, values);
+  return res.rows[0] ? rowToSession(res.rows[0]) : null;
+}
+
 export interface PatientSummary {
   patientHandle: string;
   sessionCount: number;

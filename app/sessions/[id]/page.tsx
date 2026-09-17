@@ -1,8 +1,7 @@
-import Link from 'next/link';
 import { getSession } from '../../../lib/db';
 import { LAYER_A, LAYER_B, LAYER_C, type DimensionScore, type RubricDimension } from '../../../lib/rubric';
 import { notFound } from 'next/navigation';
-import DeleteSessionButton from '../../../components/DeleteSessionButton';
+import SessionHeader from '../../../components/SessionHeader';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,24 +36,13 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-        <span className={`chip ${session.sessionType === 'consult' ? 'chip-consult' : 'chip-meeting'}`}>
-          {session.sessionType}
-        </span>
-        <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0, flex: 1 }}>{session.label || `Session #${session.id}`}</h1>
-        <DeleteSessionButton id={session.id} label={session.label || `Session #${session.id}`} />
-      </div>
-      <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 24 }}>
-        {session.sessionDate}
-        {session.patientHandle && (
-          <>
-            {' · '}
-            <Link href={`/patients/${encodeURIComponent(session.patientHandle)}`} style={{ color: 'var(--series-1)' }}>
-              {session.patientHandle}
-            </Link>
-          </>
-        )}
-      </p>
+      <SessionHeader
+        id={session.id}
+        sessionType={session.sessionType}
+        sessionDate={session.sessionDate}
+        label={session.label}
+        patientHandle={session.patientHandle}
+      />
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, alignItems: 'start' }}>
         <div>
