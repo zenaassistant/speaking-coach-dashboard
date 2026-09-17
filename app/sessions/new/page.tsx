@@ -8,6 +8,7 @@ export default function NewSessionPage() {
   const [sessionType, setSessionType] = useState<'consult' | 'meeting'>('consult');
   const [sessionDate, setSessionDate] = useState(new Date().toISOString().slice(0, 10));
   const [label, setLabel] = useState('');
+  const [patientHandle, setPatientHandle] = useState('');
   const [transcript, setTranscript] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -59,7 +60,7 @@ export default function NewSessionPage() {
       const res = await fetch('/api/sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionType, sessionDate, label, transcript }),
+        body: JSON.stringify({ sessionType, sessionDate, label, patientHandle, transcript }),
       });
       const body = await res.json();
       if (!res.ok) {
@@ -94,13 +95,29 @@ export default function NewSessionPage() {
             <input type="date" value={sessionDate} onChange={(e) => setSessionDate(e.target.value)} style={fieldInput} />
           </label>
         </div>
+        {sessionType === 'consult' && (
+          <label style={{ display: 'block', marginBottom: 16 }}>
+            <div style={fieldLabel}>Patient handle</div>
+            <input
+              type="text"
+              value={patientHandle}
+              onChange={(e) => setPatientHandle(e.target.value)}
+              placeholder="e.g. J.A. or pt-014 — an initial/code, never their real name"
+              style={fieldInput}
+            />
+            <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '4px 0 0' }}>
+              Used to group this patient's sessions for review over time — keep it de-identified;
+              your real mapping of handle → patient lives in Medplum, not here.
+            </p>
+          </label>
+        )}
         <label style={{ display: 'block', marginBottom: 16 }}>
           <div style={fieldLabel}>Label (optional)</div>
           <input
             type="text"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
-            placeholder="e.g. Ketamine consult — new patient"
+            placeholder={sessionType === 'consult' ? 'e.g. Initial ketamine consult' : 'e.g. Weekly practice meeting'}
             style={fieldInput}
           />
         </label>
@@ -123,7 +140,7 @@ export default function NewSessionPage() {
         {error && <p style={{ color: 'var(--critical)', fontSize: 13, marginBottom: 16 }}>{error}</p>}
         <button
           type="submit"
-          disabled={busy || extracting || !transcript.trim()}
+          disabled={busy || extracting || !transcript.trim() || (sessionType === 'consult' && !patientHandle.trim())}
           style={{
             padding: '10px 20px', borderRadius: 8, border: 'none',
             background: 'var(--series-1)', color: '#fff', fontSize: 14, fontWeight: 600,

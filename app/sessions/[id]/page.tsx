@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { getSession } from '../../../lib/db';
 import { LAYER_A, LAYER_B, LAYER_C, type DimensionScore, type RubricDimension } from '../../../lib/rubric';
 import { notFound } from 'next/navigation';
@@ -41,7 +42,17 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
         </span>
         <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>{session.label || `Session #${session.id}`}</h1>
       </div>
-      <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 24 }}>{session.sessionDate}</p>
+      <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 24 }}>
+        {session.sessionDate}
+        {session.patientHandle && (
+          <>
+            {' · '}
+            <Link href={`/patients/${encodeURIComponent(session.patientHandle)}`} style={{ color: 'var(--series-1)' }}>
+              {session.patientHandle}
+            </Link>
+          </>
+        )}
+      </p>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, alignItems: 'start' }}>
         <div>

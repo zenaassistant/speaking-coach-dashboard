@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { LAYER_A, LAYER_B, LAYER_C, type RubricDimension, type SessionType } from '../lib/rubric';
 
-interface SessionSummary {
+export interface SessionSummary {
   id: number;
   sessionDate: string;
   sessionType: SessionType;
@@ -42,7 +42,7 @@ function MiniTrend({ dim, points }: { dim: RubricDimension; points: { date: stri
   );
 }
 
-function LayerSection({ title, dims, sessions, extract }: {
+export function LayerSection({ title, dims, sessions, extract }: {
   title: string;
   dims: RubricDimension[];
   sessions: SessionSummary[];

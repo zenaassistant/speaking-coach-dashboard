@@ -61,6 +61,9 @@ export interface Session {
   sessionDate: string;
   sessionType: SessionType;
   label: string;
+  // De-identified index key for consult sessions (initials/code Julian
+  // chooses — deliberately never a real patient name). Blank for meetings.
+  patientHandle: string;
   transcript: string;
   scores: SessionScores;
   coachingNotes: string;

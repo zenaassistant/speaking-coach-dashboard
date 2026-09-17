@@ -47,6 +47,13 @@ function ensureSchema(): Promise<void> {
         scores JSONB NOT NULL,
         coaching_notes TEXT NOT NULL DEFAULT ''
       );
+      -- De-identified index key for consult sessions (initials/code chosen by
+      -- Julian, deliberately never a real patient name — see 2026-09-17
+      -- decision). Nullable/blank for meetings, which have no patient.
+      -- IF NOT EXISTS makes this safe to run against the table that already
+      -- existed before this column was added.
+      ALTER TABLE sessions ADD COLUMN IF NOT EXISTS patient_handle TEXT NOT NULL DEFAULT '';
+      CREATE INDEX IF NOT EXISTS sessions_patient_handle_idx ON sessions (patient_handle) WHERE patient_handle != '';
     `).then(() => undefined);
   }
   return schemaReady;
@@ -59,6 +66,7 @@ function rowToSession(row: any): Session {
     sessionDate: row.session_date.toISOString ? row.session_date.toISOString().slice(0, 10) : row.session_date,
     sessionType: row.session_type,
     label: row.label,
+    patientHandle: row.patient_handle || '',
     transcript: row.transcript,
     scores: row.scores,
     coachingNotes: row.coaching_notes,
@@ -69,15 +77,16 @@ export async function createSession(input: {
   sessionDate: string;
   sessionType: SessionType;
   label: string;
+  patientHandle: string;
   transcript: string;
   scores: SessionScores;
   coachingNotes: string;
 }): Promise<Session> {
   await ensureSchema();
   const res = await pool().query(
-    `INSERT INTO sessions (session_date, session_type, label, transcript, scores, coaching_notes)
-     VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-    [input.sessionDate, input.sessionType, input.label, input.transcript, JSON.stringify(input.scores), input.coachingNotes]
+    `INSERT INTO sessions (session_date, session_type, label, patient_handle, transcript, scores, coaching_notes)
+     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+    [input.sessionDate, input.sessionType, input.label, input.patientHandle, input.transcript, JSON.stringify(input.scores), input.coachingNotes]
   );
   return rowToSession(res.rows[0]);
 }
@@ -94,4 +103,37 @@ export async function getSession(id: number): Promise<Session | null> {
   await ensureSchema();
   const res = await pool().query('SELECT * FROM sessions WHERE id = $1', [id]);
   return res.rows[0] ? rowToSession(res.rows[0]) : null;
+}
+
+export interface PatientSummary {
+  patientHandle: string;
+  sessionCount: number;
+  lastSessionDate: string;
+}
+
+// Distinct consult patient handles, most-recently-seen first. Meetings have
+// no patient_handle (blank), so they're excluded by construction.
+export async function listPatients(): Promise<PatientSummary[]> {
+  await ensureSchema();
+  const res = await pool().query(
+    `SELECT patient_handle, COUNT(*)::int AS session_count, MAX(session_date) AS last_session_date
+     FROM sessions
+     WHERE session_type = 'consult' AND patient_handle != ''
+     GROUP BY patient_handle
+     ORDER BY last_session_date DESC`
+  );
+  return res.rows.map((row: any) => ({
+    patientHandle: row.patient_handle,
+    sessionCount: row.session_count,
+    lastSessionDate: row.last_session_date.toISOString ? row.last_session_date.toISOString().slice(0, 10) : row.last_session_date,
+  }));
+}
+
+export async function listSessionsForPatient(patientHandle: string): Promise<Session[]> {
+  await ensureSchema();
+  const res = await pool().query(
+    `SELECT * FROM sessions WHERE session_type = 'consult' AND patient_handle = $1 ORDER BY session_date ASC, id ASC`,
+    [patientHandle]
+  );
+  return res.rows.map(rowToSession);
 }
