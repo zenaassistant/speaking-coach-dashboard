@@ -105,6 +105,12 @@ export async function getSession(id: number): Promise<Session | null> {
   return res.rows[0] ? rowToSession(res.rows[0]) : null;
 }
 
+export async function deleteSession(id: number): Promise<boolean> {
+  await ensureSchema();
+  const res = await pool().query('DELETE FROM sessions WHERE id = $1', [id]);
+  return (res.rowCount ?? 0) > 0;
+}
+
 export interface PatientSummary {
   patientHandle: string;
   sessionCount: number;

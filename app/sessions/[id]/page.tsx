@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getSession } from '../../../lib/db';
 import { LAYER_A, LAYER_B, LAYER_C, type DimensionScore, type RubricDimension } from '../../../lib/rubric';
 import { notFound } from 'next/navigation';
+import DeleteSessionButton from '../../../components/DeleteSessionButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,7 +41,8 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
         <span className={`chip ${session.sessionType === 'consult' ? 'chip-consult' : 'chip-meeting'}`}>
           {session.sessionType}
         </span>
-        <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>{session.label || `Session #${session.id}`}</h1>
+        <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0, flex: 1 }}>{session.label || `Session #${session.id}`}</h1>
+        <DeleteSessionButton id={session.id} label={session.label || `Session #${session.id}`} />
       </div>
       <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 24 }}>
         {session.sessionDate}
