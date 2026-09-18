@@ -54,7 +54,12 @@ export function checkPassword(input: string): boolean {
 // — separate from the browser password, so the cron's credential can be
 // rotated/scoped independently. Checked via `Authorization: Bearer <key>`.
 export function checkApiKey(input: string | undefined): boolean {
-  const real = process.env.SYNC_API_KEY;
-  if (!real || !input) return false;
-  return timingSafeEqualStr(input, real);
+  // .trim() on both sides — a manually-pasted secret in a web form very
+  // commonly picks up a trailing newline/space, which would otherwise fail
+  // the length check before comparison even starts (silently, as a bare
+  // mismatch — this is deliberately defensive, not a sign anything else is wrong).
+  const real = process.env.SYNC_API_KEY?.trim();
+  const given = input?.trim();
+  if (!real || !given) return false;
+  return timingSafeEqualStr(given, real);
 }
