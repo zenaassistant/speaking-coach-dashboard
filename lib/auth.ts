@@ -49,3 +49,12 @@ export function checkPassword(input: string): boolean {
   if (!real) throw new Error('DASHBOARD_PASSWORD is not set');
   return timingSafeEqualStr(input, real);
 }
+
+// Server-to-server auth for the plaud-crm-sync automated pipeline (2026-09-18)
+// — separate from the browser password, so the cron's credential can be
+// rotated/scoped independently. Checked via `Authorization: Bearer <key>`.
+export function checkApiKey(input: string | undefined): boolean {
+  const real = process.env.SYNC_API_KEY;
+  if (!real || !input) return false;
+  return timingSafeEqualStr(input, real);
+}
